@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MainPage</title>
+<link rel="stylesheet" type="text/css" href="./css/mainPage.css">
+<script src="./lib/stage.js"></script>
+<script src="./lib/common.js"></script>
+<script src="./lib/GameObject.js"></script>
+<script src="./lib/ObjectManager.js"></script>
+<script src="./lib/Sensor.js"></script>
+<script src="./lib/Pointer.js"></script>
+<script src="./lib/Btn.js"></script>
+<script src="./lib/Block.js"></script>
+<script src="./lib/Box.js"></script>
+<script src="./lib/Hero.js"></script>
+<script src="./lib/MiniBox.js"></script>
+<script src="./lib/customScript.js"></script>
+<script src="./lib/Cell.js"></script>
+
+<script>
+var currentStage=0; //현재stage-1(0~9)
+/*------------------------------------------------------------
+	변수 선언
+------------------------------------------------------------*/
+//div id
+var controller; //왼쪽div
+var custom_area; //커스텀맵 만드는 div
+var stage; //가운데div
+var info; //오른쪽div
+
+var objectManager = new ObjectManager(); 
+//생성된 모든객체를 관리하는 오브젝트 매니저 객체 생성
+
+var hero; //주인공
+var key; //키보드 key넘버
+var stepCount=0; //화면에 보여질 걸음 수
+var isWalk=true; //걸을지 말지를 결정짓는 변수
+var remainingBox=0; //남은 회색 박스 갯수
+var flag=true; //게임 설명 버튼 제어 플래그(true : div생성 /false : div삭제)
+
+/*------------------------------------------------------------
+	초기화 함수
+------------------------------------------------------------*/
+function init(){
+	stage = document.getElementById("stage");
+	controller = document.getElementById("controller");
+	custom_area=document.getElementById("custom_area");
+	info = document.getElementById("info");
+	info.style.position="relative";
+	//createAudio();
+	createPointer(); //stage생성을 위한 객체생성 초기화 1
+	createStage(); //stage생성을 위한 객체생성 초기화 2
+	setBoxColor(); //stage생성을 위한 객체생성 초기화 3
+	createHero(); //stage생성을 위한 객체생성 초기화 4
+	remainBox(); //stage생성을 위한 객체생성 초기화 5
+	showScore();
+	createCellForCustomMap();
+	gameLoop();
+} 
+
+/*------------------------------------------------------------
+	오디오 생성 함수 : 아직 미 구현
+------------------------------------------------------------*/
+function createAudio(){ 
+		var audio = document.createElement("audio");
+		//audio가 나타내는 객체를 생성하여 audio변수에 저장
+		audio.src="../res/angryBird/main_theme.mp3";
+		//audio객체가 있는 경로 지정
+		audio.play();
+		//오디오 재생함수 호출
+		/*
+		error발생 : 구글에서 오디오 재생 관련 정책을 변경했기 때문
+		해결 : 에러문구에서 나타난 사이트로 들어가서 >
+		chrome://flags/#autoplay-policy 이 주소를 찾아 들어간다 >
+		Autoplay policy의 Default값을 No user gesture is required로 변경 >
+		Relaunch Now 클릭
+		*/
+	}
+
+/*-------------------------------------------------------------------------
+	정답 화면 생성 
+	: currentStage 값에 의해 동적으로 생성
+-------------------------------------------------------------------------*/
+function createPointer(){
+	for(var a=0; a<pointerArray[currentStage].length; a++){ //x
+		for(var i=0; i<pointerArray[currentStage][a].length; i++){ //y
+			if(pointerArray[currentStage][a][i] == 9){
+				var pointer = new Pointer("Pointer",stage,i*50,a*50,20,20,0,0,0,0,"","blue");
+				pointer.div.style.borderRadius=10+"px";
+				pointer.div.style.marginLeft=12.5+"px";
+				pointer.div.style.marginTop=12.5+"px";
+				objectManager.addObject(pointer);
+			}
+		}
+	}
+}
+
+/*------------------------------------------------------------
+	stage(가운데div) 객체 생성 함수
+	: currentStage 값에 의해 동적으로 생성
+------------------------------------------------------------*/
+function createStage(){
+	//stage.style.backgroundImage="url('./res/pointerBg"+currentStage+".png')";
+	for(var a=0; a<stageArray[currentStage].length; a++){
+		for(var i=0; i<stageArray[currentStage][a].length; i++){
+			//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg
+			var num=stageArray[currentStage][a][i];
+			switch(num){
+				case 1:
+					createBlock(50*i ,50*a);
+				break;
+				case 2:
+					createBox(a,i);
+				break;
+			}
+		}
+	}
+}
+
+/*------------------------------------------------------------
+	게임 설명 div 생성 함수
+	: flag에 의해 처음 클릭시 객체가 생성, 그다음 클릭시 객체 제거
+------------------------------------------------------------*/
+function openInfo(){
+	if(flag){
+		//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg
+		info = new MiniBox("",stage,-300,100,550,550,0,0,0,0,"","");
+		info.div.style.backgroundImage="url('./res/infoBg.png')";
+	}else{
+		stage.removeChild(info.div);
+	}
+	flag=!flag;
+}
+
+/*------------------------------------------------------------
+	hero(주인공) 생성 함수
+------------------------------------------------------------*/
+function createHero(){
+	//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg
+	for(var a=0; a<stageArray[currentStage].length; a++){
+		for(var i=0; i<stageArray[currentStage][a].length; i++){
+			//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg
+			var num=stageArray[currentStage][a][i];
+			switch(num){
+				case 7:
+					hero = new Hero("HERO",stage,(50*i)+5,(50*a)+5,25,30,0,0,0,0,"./res/frontHero.png","");
+					objectManager.addObject(hero);
+					//console.log("히어로 생성");
+				break;
+			}
+		}
+	}
+}
+
+/*------------------------------------------------------------
+	block(벽) 생성 함수
+------------------------------------------------------------*/
+function createBlock(x,y){
+	//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg
+	var block = new Block("BLOCK",stage,x,y,50,50,0,0,0,0,"./res/block.png","");
+	objectManager.addObject(block);
+}
+
+/*------------------------------------------------------------
+	box(박스) 생성 함수
+	: 임의로 흰색박스png로 생성(의미는 없지만, 에러방지)
+------------------------------------------------------------*/
+function createBox(row,col){
+	//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg,row,col
+	var box = new Box("BOX",stage,col*50,row*50,50,50,0,0,0,0,"./res/box.png","",row,col);
+	objectManager.addObject(box);
+}
+
+/*------------------------------------------------------------
+	box의 색 구현
+	1) 회색 박스 : 정답(9번) 위에 있지 않은 박스
+		./res/box.png
+	2) 갈색 박스 : 정답(9번) 위에 있는 박스
+		./res/changeBox.png
+------------------------------------------------------------*/ 
+function setBoxColor(){
+	for(var a=0; a<stageArray[currentStage].length; a++){
+		for(var i=0; i<stageArray[currentStage][a].length; i++){
+			var box = stageArray[currentStage][a][i];
+			//console.log("box ",box,", ",pointerArray[a][i]);
+
+			if(box == 2){ //박스(2번)이 맞는지 확인
+				if(pointerArray[currentStage][a][i] == 9){
+					for(var k=0; k<objectManager.objectArray.length; k++){
+						var obj=objectManager.objectArray[k];
+						if(obj.type=="BOX"){
+							//console.log(obj);
+							if(obj.row == a && obj.col == i){
+								//console.log("발견",pointerArray[obj.row][obj.col]);
+								obj.img.src="./res/changeBox.png"; //갈색박스
+							}
+						}
+					}
+				}else{
+					for(var k=0; k<objectManager.objectArray.length; k++){
+						var obj=objectManager.objectArray[k];
+						if(obj.type=="BOX"){
+							if(obj.row == a && obj.col == i){
+								obj.img.src="./res/box.png"; //회색박스
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+/*------------------------------------------------------------
+	회색 박스(남은 박스) 갯수 세는 함수
+	; 회색 박스가 만약 0개라면 다음 stage로 이동
+------------------------------------------------------------*/
+function remainBox(){
+	var answerBox=0; //정답위에 올라간 박스 수
+	for(var i=0;i<objectManager.objectArray.length;i++){
+		var obj=objectManager.objectArray[i];
+		if(obj.type=="BOX"){
+			//현재 박스와 정답인 파란색원과의 관계 1:多 관계임 
+
+			for(var a=0; a<pointerArray[currentStage].length; a++){
+				for(var k=0;k<pointerArray[currentStage][a].length;k++){
+					var n = pointerArray[currentStage][a][k]; //n : 좌표
+					if(obj.row==a && obj.col ==k){
+						if(n==9){
+							console.log(obj,"가 정답위에 있네요", a,k);
+							answerBox++;
+						}
+					}
+				}
+			}
+		}
+	}
+	//판단할 배열과 정답으로 간주되는 수(여기서는 9)를 넘겨주면 함수가 알아서 계산해줌
+	var answerNum = getAnswerNum(pointerArray[currentStage],9); //정답 박스의 총 갯수
+	remainingBox=answerNum-answerBox; //남은 박스 수 = 정답 박스의 총 갯수 - 정답 위에 있는 박스 수
+	showScore(); //박스의 수가 갱신될때마다 정보도 함께 호출
+	if(remainingBox<=0){
+		moveStage();
+	}
+}
+
+/*------------------------------------------------------------
+	현재 스코어를 보여주는 함수
+	(남은 갯수, 걸은 횟수)
+------------------------------------------------------------*/
+function showScore(){
+	//type,container,x,y,width,height,velX,velY,targetX,targetY,src,bg
+	var str=""
+	var scoreBox = new MiniBox("",info,15,30,280,230,0,0,0,0,"","white");
+	str+="<h2>"+"▒▒ score ▒▒"+"</h2>"
+		+"stage : "+(currentStage+1)+"/"+stageArray.length+"<br/>"
+		+"남은 박스 : "+remainingBox+"<br/>"
+		+"걸은 횟수 : "+stepCount;
+	scoreBox.div.innerHTML=str;
+	scoreBox.div.style.border=2+"px solid black";
+	scoreBox.div.style.textAlign="center";
+	scoreBox.div.style.fontSize=25+"px";
+	//console.log(stepCount);
+}
+
+/*------------------------------------------------------------
+	hero(주인공) 움직임 제어 함수 : 이동
+------------------------------------------------------------*/
+function move(){
+	key= event.keyCode;
+	switch(key){
+		case 37: //좌
+			hero.velX=-2;
+			setWalkState();
+			hero.src="./res/leftHero.png";
+		break;
+		case 39:
+			hero.velX=2;
+			setWalkState();
+			hero.src="./res/rightHero.png";
+		break;
+		case 38: //상
+			hero.velY=-2;
+			setWalkState();
+			hero.src="./res/backHero.png";
+		break;
+		case 40:
+			hero.velY=2;
+			setWalkState();
+			hero.src="./res/frontHero.png";
+		break;
+	}
+	hero.img.src=hero.src;
+	showScore();
+}
+
+/*------------------------------------------------------------
+	hero(주인공)의 상태가 걷는 상태라면 걷는 횟수를 증가하는 함수
+------------------------------------------------------------*/
+function setWalkState(){ 
+	if(isWalk){
+		stepCount++;
+	}
+}
+
+/*------------------------------------------------------------
+	hero(주인공) 움직임 제어 함수 : 멈춤
+------------------------------------------------------------*/
+function stop(){
+	hero.velX=0;
+	hero.velY=0;
+}
+
+/*------------------------------------------------------------
+	gameLoop함수
+------------------------------------------------------------*/
+function gameLoop(){
+	objectManager.tick();
+	objectManager.render();
+	setTimeout("gameLoop()",30);
+}
+
+/*------------------------------------------------------------
+	문서가 모두 읽히고 난 뒤, 초기화 함수 호출
+------------------------------------------------------------*/
+addEventListener("load",function(){
+	init();
+});
+
+</script>
+</head>
+<body onKeyDown="move()" onKeyUp="stop()">
+	<div class="wrapper">
+		<div id="controller">
+			<div class="btn_area">
+				<button onClick="openInfo()">게임 설명</button>
+				<button onClick="window.location.reload()">다시 시작</button>
+				<button onClick="prevStage()">이전 단계</button>
+				<button onClick="moveStage()">다음 단계</button>
+				<button onClick="showCustomMap()">맵 만들기</button>
+			</div>
+			<div id="custom_area">
+				<button onClick="setObjType(1,'#cc6600')">블럭</button>
+				<button onClick="setObjType(2,'gray')">박스</button>
+				<button id="heroBtn" onClick="setObjType(7,'#ff00ff')">hero</button>
+				<button onClick="setObjType(9,'#6633ff')">정답</button>
+				<div id="custom"></div>
+				<button onClick="applyMap()">적용 하기</button>
+			</div>
+		</div>
+		<div id="stage"></div>
+		<div id="info"></div>
+	</div>
+</body>
+</html>

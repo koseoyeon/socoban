@@ -1,0 +1,80 @@
+/*메인페이지 css*/
+
+.wrapper{
+	width:1500px;
+	height:900px;
+	margin:auto;
+}
+#stage{
+	width:900px;
+	height:100%;
+	margin:auto;
+	position:relative;
+	float:left;
+}
+#controller{
+	width:300px;
+	height:100%;
+	text-align:center;
+	float:left;
+	/*background:black;*/
+}
+button{
+	margin-top:10px;
+	width:120px;
+	height:50px;
+	font-size:18px;
+	border-radius:30px;
+	font-weight:bold;
+	background:#000;
+	color:#fff;
+}
+.btn_area{
+	margin-top:40px;
+}
+#info{
+	width:300px;
+	height:100%;
+	float:left;
+	/*background:black;*/
+}
+#custom_area{
+	margin-top:20px;
+	width:300px;
+	height:410px;
+	text-align:center;
+	display:none;
+}
+#custom{
+	margin-left:5px;
+	width:289px;
+	height:289px;
+	position:relative;
+	cursor:pointer;
+}
+#custom_area button{
+	margin-top:10px;
+	height:40px;
+	font-size:15px;
+	margin-bottom:10px;
+}
+#custom_area button:nth-child(1){
+	background:#cc6600;
+	width:60px;
+}
+#custom_area button:nth-child(2){
+	background:gray;
+	width:60px;
+}
+#custom_area button:nth-child(3){
+	background:#ff00ff;
+	width:60px;
+}
+#custom_area button:nth-child(4){
+	background:#6633ff;
+	width:60px;
+}
+#custom_area button:nth-child(5){
+	background:black;
+	width:100px;
+}
